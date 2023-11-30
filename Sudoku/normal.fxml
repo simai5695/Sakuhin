@@ -228,7 +228,7 @@
       </GridPane>
       <Button layoutX="605.0" layoutY="374.0" mnemonicParsing="false" onMouseClicked="#clickDel" prefHeight="40.0" prefWidth="40.0" text="Del" />
       <Button layoutX="605.0" layoutY="414.0" mnemonicParsing="false" onMouseClicked="#clearBoard" prefHeight="40.0" prefWidth="40.0" text="Cl" />
-      <MenuButton fx:id="menuBar" layoutX="516.0" layoutY="74.0" mnemonicParsing="false" prefHeight="25.0" prefWidth="99.0" text="Type">
+      <MenuButton fx:id="menuBar" layoutX="516.0" layoutY="74.0" mnemonicParsing="false" prefHeight="25.0" prefWidth="99.0" text="Type" visible="false">
         <items>
           <MenuItem mnemonicParsing="false" text="normal" />
           <MenuItem mnemonicParsing="false" text="cross" />
