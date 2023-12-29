@@ -1,16 +1,20 @@
 public class Solver {
 
     private int[][] board;
+    private int[][] boxes;
+    private boolean crossF;
 
-    public Solver(int[][] board) {
+    public Solver(int[][] board, int[][] boxes, boolean crossF) {
         this.board = board;
+        this.boxes = boxes;
+        this.crossF = crossF;
     }
     public boolean solve(){
         int[][] copy = this.board;
-        if(!(findWrong(copy))){
+        if(!(findWrong(copy, boxes, crossF))){
             return false;
         }
-        if (solveSudoku(this.board)) {
+        if (solveSudoku(this.board, this.boxes, this.crossF)) {
             //System.out.println("数独の解決:");
             //printBoard(this.board);
             return true;
@@ -20,7 +24,7 @@ public class Solver {
         }
     }
 
-    public static boolean solveSudoku(int[][] board) {
+    public static boolean solveSudoku(int[][] board, int[][] boxes, boolean crossF) {
         int N = board.length;
 
         // 未割り当てのセルを検索
@@ -35,11 +39,11 @@ public class Solver {
 
         // 1から9までの数字を試す
         for (int num = 1; num <= 9; num++) {
-            if (isSafe(board, row, col, num)) {
+            if (isSafe(board, row, col, num, crossF, boxes)) {
                 // 数字が安全であればセットして再帰的に解を探す
                 board[row][col] = num;
 
-                if (solveSudoku(board)) {
+                if (solveSudoku(board, boxes, crossF)) {
                     return true;
                 }
 
@@ -69,38 +73,68 @@ public class Solver {
         return result;
     }
 
-    private static boolean isSafe(int[][] board, int row, int col, int num) {
-        return !usedInRow(board, row, num) &&
-               !usedInCol(board, col, num) &&
-               !usedInBox(board, row - row % 3, col - col % 3, num);
-    }
-
-    private static boolean usedInRow(int[][] board, int row, int num) {
-        for (int col = 0; col < board.length; col++) {
-            if (board[row][col] == num) {
-                return true;
-            }
+    private static boolean isSafe(int[][] board, int row, int col, int num, boolean crossF, int[][] boxes) {
+        boolean i = !usedInRow(board, row, col, num) &&
+               !usedInCol(board, row, col, num) &&
+               !usedInBox(board, row, col, num, boxes);
+        if(crossF){
+            i = i && !usedInDiagonal(board, row, col, num); 
         }
-        return false;
+
+        return i; 
     }
 
-    private static boolean usedInCol(int[][] board, int col, int num) {
-        for (int row = 0; row < board.length; row++) {
-            if (board[row][col] == num) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private static boolean usedInBox(int[][] board, int boxStartRow, int boxStartCol, int num) {
-        for (int row = 0; row < 3; row++) {
-            for (int col = 0; col < 3; col++) {
-                if (board[row + boxStartRow][col + boxStartCol] == num) {
+    private static boolean usedInRow(int[][] board, int row, int col, int num) {
+        for (int c = 0; c < board.length; c++) {
+            if(col != c){
+                if (board[row][c] == num) {
                     return true;
                 }
             }
         }
+        return false;
+    }
+
+    private static boolean usedInCol(int[][] board, int row, int col, int num) {
+        for (int r = 0; r < board.length; r++) {
+            if(row != r){
+                if (board[r][col] == num) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private static boolean usedInBox(int[][] board, int row, int col, int num, int[][] boxes) {
+        int N = board.length;
+        for (int r = 0; r < N; r++) {
+            for (int c = 0; c < N; c++) {
+                if(boxes[row][col] == boxes[r][c] && num == board[r][c]){
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private static boolean usedInDiagonal(int[][] board, int row, int col, int num) {
+        int N = board.length;
+        if(row == col){
+            for (int i = 0; i < N; i++) {
+                if (board[i][i] == num) {
+                    return true;
+                }
+            }
+        }
+        if(row + col == N-1){
+            for (int i = 0; i < N; i++) {
+                if (board[i][N-1-i] == num) {
+                    return true;
+                }
+            }
+        }
+        
         return false;
     }
 
@@ -118,7 +152,7 @@ public class Solver {
         }
     }
 
-    public static boolean findWrong(int[][] board) {
+    public static boolean findWrong(int[][] board, int[][] boxes, boolean crossF) {
         int N = board.length;
     
         // 同じ行に同じ数字があるかをチェック
@@ -147,22 +181,62 @@ public class Solver {
             }
         }
     
+        //ボックスが9マスに設定されているか
+        for(int i = 0; i < 9; i++){
+            int n = 0;
+            for (int row = 0; row < N; row++) {
+                for (int col = 0; col < N; col++) {
+                    if(boxes[row][col] == i){
+                        n++;
+                        
+                    }
+                    if(!NextTo(boxes, row, col, boxes[row][col])){
+                        return false;
+                    }
+                }
+            }
+            if(n < 9){
+                return false;
+            }
+        }
         // 同じボックスに同じ数字があるかをチェック
-        for (int boxStartRow = 0; boxStartRow < N; boxStartRow += 3) {
-            for (int boxStartCol = 0; boxStartCol < N; boxStartCol += 3) {
-                for (int row = 0; row < 3; row++) {
-                    for (int col = 0; col < 3; col++) {
-                        int currentNum = board[row + boxStartRow][col + boxStartCol];
-                        if (currentNum != 0) {
-                            for (int dRow = 0; dRow < 3; dRow++) {
-                                for (int dCol = 0; dCol < 3; dCol++) {
-                                    int checkNum = board[dRow + boxStartRow][dCol + boxStartCol];
-                                    if ((row + boxStartRow != dRow + boxStartRow || col + boxStartCol != dCol + boxStartCol)
-                                            && currentNum == checkNum) {
-                                        return false;
-                                    }
-                                }
+        for (int row = 0; row < N; row++) {
+            for (int col = 0; col < N; col++) {
+                if(board[row][col] != 0){
+                    for(int bRow = row+1; bRow < N; bRow++){
+                        for(int bCol = 0; bCol < N; bCol++){
+                            if(boxes[row][col] == boxes[bRow][bCol] && board[row][col] == board[bRow][bCol]){
+                                return false;
                             }
+                        }
+                    }
+                    for(int bRow = 0; bRow < N; bRow++){
+                        for(int bCol = col+1; bCol < N; bCol++){
+                            if(boxes[row][col] == boxes[bRow][bCol] && board[row][col] == board[bRow][bCol]){
+                                return false;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        //対角線上に同じ数字があるかチェック
+        if(crossF){
+            for (int i = 0; i < N; i++) {
+                if (board[i][i] != 0) {
+                    for(int j = i + 1; j < N; j++){
+                        if(board[j][j] == board[i][i]){
+                            return false;
+                        }
+                    }
+                }
+            }
+            for (int i = 0; i < N; i++) {
+                if (board[i][N-1-i] != 0) {
+                    for(int j = i + 1; j < N; j++){
+                        if(board[j][N-1-j] == board[i][N-1-i]){
+                            return false;
                         }
                     }
                 }
@@ -171,5 +245,29 @@ public class Solver {
     
         return true;
     }
-    
+
+    public static boolean NextTo(int[][] boxes, int row, int col, int boxNum){
+        //OKならtrue、NGならfalseを返す
+        boolean b = false;
+        // if(row > 0 && row < 8 && col > 0 && col < 8){
+        //     if(boxes[row][col] != boxes[row-1][col] && boxes[row][col] != boxes[row+1][col] &&
+        //         boxes[row][col] != boxes[row][col-1] && boxes[row][col] != boxes[row][col+1]){
+        //         b = b && false;
+        //     }
+        // }
+        if(row < 8){
+            b = b || boxes[row][col] == boxes[row+1][col];
+        }
+        if(row > 0){
+            b = b || boxes[row][col] == boxes[row-1][col];
+        }
+        if(col < 8){
+            b = b || boxes[row][col] == boxes[row][col+1];
+        }
+        if(col > 0){
+            b = b || boxes[row][col] == boxes[row][col-1];
+        }
+        return b;
+        //
+    }
 }
